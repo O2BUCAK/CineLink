@@ -1,0 +1,8 @@
+{
+  "name": "CineLink: Sinema Bağlantı Oyunu",
+  "description": "Oyuncuların iki ünlü isim arasındaki bağlantıları en az adımda bulmaya çalıştığı, sinema odaklı bir bulmaca oyunu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

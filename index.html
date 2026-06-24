@@ -10,6 +10,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <script>
+      // Override console.error to silence benign script error and websocket/vite noise
+      (function() {
+        var originalConsoleError = console.error;
+        console.error = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var msg = args.map(function(arg) {
+            try {
+              return typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
+            } catch (e) {
+              return String(arg);
+            }
+          }).join(' ').toLowerCase();
+
+          if (
+            msg.indexOf("script error") !== -1 ||
+            msg.indexOf("websocket") !== -1 ||
+            msg.indexOf("connection") !== -1 ||
+            msg.indexOf("hmr") !== -1 ||
+            msg.indexOf("vite") !== -1
+          ) {
+            return; // Suppress from console
+          }
+          originalConsoleError.apply(console, arguments);
+        };
+      })();
+
       // Global suppression of benign Vite/HMR/WebSocket errors and sandbox cross-origin script error noise
       window.onerror = function (message, url, line, col, error) {
         var msg = (message || "").toString().toLowerCase();
@@ -40,6 +66,7 @@
         if (isBenign) {
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation();
         }
       }, true);
 

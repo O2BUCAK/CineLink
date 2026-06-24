@@ -171,6 +171,8 @@ const App: React.FC = () => {
       console.error("Sign in error:", e);
       if (e.code === 'auth/popup-blocked') {
         setErrorMsg('Giriş penceresi tarayıcı tarafından engellendi. Lütfen pop-up engelleyicinizi devre dışı bırakın veya uygulamayı yeni sekmede açın.');
+      } else if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        setErrorMsg('Giriş penceresi kapatıldı veya tarayıcınızın çerez/iframe kısıtlamaları nedeniyle engellendi. Firebase Google Girişinin sorunsuz çalışması için sağ üstteki buton ile uygulamayı yeni bir sekmede açarak deneyebilirsiniz.');
       } else {
         setErrorMsg('Google ile giriş yapılırken bir hata oluştu: ' + (e.message || e));
       }

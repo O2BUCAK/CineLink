@@ -22,14 +22,7 @@ import {
   increment
 } from 'firebase/firestore';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBzCi4A4AmQr1EB38aLJsKZLANKfsYzTYU",
-  authDomain: "ai-studio-applet-webapp-56d2b.firebaseapp.com",
-  projectId: "ai-studio-applet-webapp-56d2b",
-  storageBucket: "ai-studio-applet-webapp-56d2b.firebasestorage.app",
-  messagingSenderId: "462210944190",
-  appId: "1:462210944190:web:e7d30161095fff144c62ef"
-};
+import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -43,7 +36,7 @@ googleProvider.setCustomParameters({
 });
 
 // Initialize Firestore with custom databaseId
-const dbId = "ai-studio-0abf5987-61f4-427a-951c-3cedb7678a28";
+const dbId = firebaseConfig.firestoreDatabaseId || '(default)';
 export const db = getFirestore(app, dbId);
 
 export enum OperationType {

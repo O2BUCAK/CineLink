@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile tracking game metrics and play count.",
+      "type": "object",
+      "properties": {
+        "playCount": {
+          "type": "integer",
+          "description": "Total number of games played by the user."
+        }
+      },
+      "required": ["playCount"]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "High score entry for completed game chains.",
+      "type": "object",
+      "properties": {
+        "nickname": {
+          "type": "string",
+          "description": "Display name or player handle.",
+          "maxLength": 64,
+          "minLength": 1
+        },
+        "score": {
+          "type": "integer",
+          "description": "Score achieved by player (lower or calculated)."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date format DD.MM.YYYY string.",
+          "maxLength": 32
+        },
+        "chain": {
+          "type": "array",
+          "description": "Array of steps in the verified chain."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "User game count at the time of achievement."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase User ID."
+        }
+      },
+      "required": ["nickname", "score", "date", "chain", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Private user game state document, access restricted to the authenticated document owner."
+    },
+    "/leaderboard/{docId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Global public leaderboard entries with validated schema and owner protection."
+    }
+  }
+}

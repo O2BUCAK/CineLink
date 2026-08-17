@@ -198,6 +198,8 @@ const App: React.FC = () => {
 
   const saveToLeaderboard = async (finalChain: LinkStep[], score: number) => {
     const today = new Date().toLocaleDateString('tr-TR');
+    const safeNick = nickname.trim().slice(0, 50) || 'Oyuncu';
+    const safeScore = Math.max(0, Math.min(10000, Math.round(score)));
     
     if (user) {
       try {
@@ -212,7 +214,7 @@ const App: React.FC = () => {
         
         let newPlayCount = 1;
         if (userSnap && userSnap.exists()) {
-          newPlayCount = (userSnap.data().playCount || 0) + 1;
+          newPlayCount = Math.max(1, Math.min(1000000, Math.round((userSnap.data().playCount || 0) + 1)));
           try {
             await updateDoc(userRef, { playCount: newPlayCount });
           } catch (err) {
@@ -230,10 +232,10 @@ const App: React.FC = () => {
         setPlayCount(newPlayCount + 1);
 
         const newEntry = {
-          nickname: nickname.trim(),
-          score: score,
+          nickname: safeNick,
+          score: safeScore,
           date: today,
-          chain: finalChain.map(c => c.name),
+          chain: finalChain.slice(0, 30).map(c => c.name.slice(0, 80)),
           playCount: newPlayCount,
           userId: uid
         };
@@ -253,10 +255,10 @@ const App: React.FC = () => {
       // Unauthenticated -> Temporary list only. Restores on next session (cleared on refresh).
       const currentPlay = playCount;
       const tempEntry: LeaderboardEntry = {
-        nickname: nickname.trim(),
-        score: score,
+        nickname: safeNick,
+        score: safeScore,
         date: today,
-        chain: finalChain.map(c => c.name),
+        chain: finalChain.slice(0, 30).map(c => c.name.slice(0, 80)),
         playCount: currentPlay,
         isTemporary: true
       };

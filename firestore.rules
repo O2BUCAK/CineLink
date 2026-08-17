@@ -1,16 +1,80 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // User profiles for tracking play count
+    
+    // Global Safety Net: Default-deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User profile validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['playCount']) &&
+             data.keys().size() == 1 &&
+             data.playCount is int &&
+             data.playCount >= 0 &&
+             data.playCount <= 1000000;
+    }
+
+    // Leaderboard entry validation (Prevents field tampering, payload pollution, and score manipulation)
+    function isValidLeaderboardEntry(data) {
+      return data.keys().hasAll(['nickname', 'score', 'date', 'chain', 'playCount', 'userId']) &&
+             data.keys().size() == 6 &&
+             data.nickname is string &&
+             data.nickname.size() >= 1 &&
+             data.nickname.size() <= 64 &&
+             data.score is int &&
+             data.score >= 0 &&
+             data.score <= 10000 &&
+             data.date is string &&
+             data.date.size() >= 4 &&
+             data.date.size() <= 32 &&
+             data.chain is list &&
+             data.chain.size() >= 1 &&
+             data.chain.size() <= 50 &&
+             data.chain[0] is string &&
+             data.playCount is int &&
+             data.playCount >= 0 &&
+             data.playCount <= 1000000 &&
+             data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() <= 128;
+    }
+
+    // User profiles for tracking private play count & state (Strict Owner Row-Level Security)
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow list: if false; // Block user enumeration
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['playCount']);
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
     }
     
-    // Leaderboard entries
+    // Leaderboard entries (Public read, verified owner write and strictly validated fields)
     match /leaderboard/{docId} {
-      allow read: if true;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow get: if isValidId(docId);
+      allow list: if true;
+      allow create: if isSignedIn() && isValidLeaderboardEntry(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && isValidLeaderboardEntry(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }
+

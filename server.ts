@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import { OFFLINE_CHALLENGES, LOCAL_CINEMA_DICTIONARY } from "./src/data/cinemaData";
 
 // Lazy-initialization of GoogleGenAI to meet security guidelines & avoid crashes when the key is omitted
 let aiInstance: GoogleGenAI | null = null;
@@ -25,20 +26,6 @@ function getAiClient(): GoogleGenAI | null {
   }
   return aiInstance;
 }
-
-// Full offline local challenges bank for Turkish and Global sinelinks (Privacy & Free access priority)
-const OFFLINE_CHALLENGES = [
-  { start: "Şener Şen", end: "Cem Yılmaz" },
-  { start: "Kemal Sunal", end: "Şener Şen" },
-  { start: "Haluk Bilginer", end: "Nuri Bilge Ceylan" },
-  { start: "Kıvanç Tatlıtuğ", end: "Beren Saat" },
-  { start: "Cüneyt Arkın", end: "Tarık Akan" },
-  { start: "Leonardo DiCaprio", end: "Christopher Nolan" },
-  { start: "Tom Hanks", end: "Quentin Tarantino" },
-  { start: "Al Pacino", end: "Robert De Niro" },
-  { start: "Zeki Alasya", end: "Metin Akpınar" },
-  { start: "Meltem Cumbul", end: "Keanu Reeves" }
-];
 
 // In-Memory Rate Limiter for Bot & DoS Protection
 interface RateLimitRecord {
@@ -119,6 +106,22 @@ async function startServer() {
     // Referrer Policy
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     
+    // Content-Security-Policy (CSP) for robust XSS defense (Explicitly whitelisting Self, Google AdSense, Google Fonts, Firebase)
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://*.google.com https://*.gstatic.com https://*.googlesyndication.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: https: blob:",
+        "connect-src 'self' https: wss: https://*.googleapis.com https://*.firebaseio.com https://pagead2.googlesyndication.com",
+        "frame-src 'self' https://*.google.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com",
+        "object-src 'none'",
+        "base-uri 'self'"
+      ].join("; ")
+    );
+
     // Feature & Permissions Policy
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
     
@@ -127,8 +130,22 @@ async function startServer() {
       res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
     }
 
-    // CORS & Options handling
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    // Defense-in-depth CORS configuration: Replaces wildcard '*' with validated origin whitelist
+    const requestOrigin = req.headers.origin;
+    const requestHost = req.headers.host;
+    const isTrustedOrigin = !requestOrigin || 
+      (requestHost && requestOrigin.includes(requestHost)) ||
+      requestOrigin.endsWith('.run.app') ||
+      requestOrigin.includes('localhost') ||
+      requestOrigin.includes('127.0.0.1');
+
+    if (requestOrigin && isTrustedOrigin) {
+      res.setHeader("Access-Control-Allow-Origin", requestOrigin);
+      res.setHeader("Vary", "Origin");
+    } else if (!requestOrigin && requestHost) {
+      const proto = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+      res.setHeader("Access-Control-Allow-Origin", `${proto}://${requestHost}`);
+    }
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
 
@@ -177,8 +194,9 @@ async function startServer() {
       
       const randomChallenge = OFFLINE_CHALLENGES[Math.floor(Math.random() * OFFLINE_CHALLENGES.length)];
       res.json(randomChallenge);
-    } catch (error: any) {
-      console.error("Error generating challenge with AI:", error?.message || error);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Error generating challenge with AI:", errMsg);
       const randomChallenge = OFFLINE_CHALLENGES[Math.floor(Math.random() * OFFLINE_CHALLENGES.length)];
       res.json({
         ...randomChallenge,
@@ -200,34 +218,11 @@ async function startServer() {
     const cleanFrom = from.toLowerCase();
     const cleanTo = to.toLowerCase();
 
-    // High-performance local verification dictionary
-    const localDatabase: { [key: string]: string } = {
-      "şener şen_av mevsimi": "Şener Şen, Av Mevsimi (2010) filminde Komiser Ferman karakteri ile başrolde yer almıştır.",
-      "av mevsimi_şener şen": "Şener Şen, Yavuz Turgul imzalı Av Mevsimi (2010) filminde Komiser Ferman karakteriyle başroldedir.",
-      "av mevsimi_cem yılmaz": "Cem Yılmaz, Av Mevsimi (2010) filmindeki cinayet şube polisi 'Deli İdris' rolüyle sinemalarda yer almıştır.",
-      "cem yılmaz_av mevsimi": "Cem Yılmaz, Av Mevsimi (2010) filmindeki cinayet şube polisi 'Deli İdris' rolüyle sinemalarda yer almıştır.",
-      
-      "kemal sunal_hababam sınıfı": "Kemal Sunal, Hababam Sınıfı serisinde 'İnek Şaban' rolüyle oynamıştır.",
-      "hababam sınıfı_kemal sunal": "Kemal Sunal, Hababam Sınıfı serisinde 'İnek Şaban' rolüyle oynamıştır.",
-      "hababam sınıfı_şener şen": "Şener Şen, Hababam Sınıfı serisinde 'Badi Ekrem' rolünü canlandırmıştır.",
-      "şener şen_hababam sınıfı": "Şener Şen, Hababam Sınıfı serisinde 'Badi Ekrem' rolünü canlandırmıştır.",
-
-      "nuri bilge ceylan_kış uykusu": "Nuri Bilge Ceylan, 2014 Cannes Altın Palmiye ödüllü Kış Uykusu filminin yönetmenidir.",
-      "kış uykusu_nuri bilge ceylan": "Nuri Bilge Ceylan, 2014 Cannes Altın Palmiye ödüllü Kış Uykusu filminin yönetmenidir.",
-      "kış uykusu_haluk bilginer": "Haluk Bilginer, Kış Uykusu filminde başkarakter Aydın'ı canlandırmıştır.",
-      "haluk bilginer_kış uykusu": "Haluk Bilginer, Kış Uykusu filminde başkarakter Aydın'ı canlandırmıştır.",
-
-      "leonardo dicaprio_inception": "Leonardo DiCaprio, Christopher Nolan'ın yönettiği Inception filminde Dom Cobb rolündedir.",
-      "inception_leonardo dicaprio": "Leonardo DiCaprio, Christopher Nolan'ın yönettiği Inception filminde Dom Cobb rolündedir.",
-      "inception_christopher nolan": "Christopher Nolan, Inception filminin yönetmeni ve yazarıdır.",
-      "christopher nolan_inception": "Christopher Nolan, Inception filminin yönetmeni ve yazarıdır."
-    };
-
     const searchKey = `${cleanFrom}_${cleanTo}`;
-    if (localDatabase[searchKey]) {
+    if (LOCAL_CINEMA_DICTIONARY[searchKey]) {
       res.json({
         isValid: true,
-        explanation: localDatabase[searchKey]
+        explanation: LOCAL_CINEMA_DICTIONARY[searchKey]
       });
       return;
     }
@@ -279,8 +274,9 @@ Lütfen yanıtını aşağıdaki JSON formatında ver:
           explanation: `"${from}" ve "${to}" başarıyla eşleştirildi.`
         });
       }
-    } catch (error: any) {
-      console.error("AI verify link error:", error?.message || error);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("AI verify link error:", errMsg);
       res.json({
         isValid: true,
         explanation: `[Çevrimdışı Mod] "${from}" ile "${to}" bağlantısı kabul edildi.`
@@ -313,8 +309,23 @@ Lütfen yanıtını aşağıdaki JSON formatında ver:
     }
 
     const logMessage = `[${new Date().toISOString()}] Message: ${message}\nURL: ${url} (Line: ${line}, Col: ${column})\nStack: ${stack}\n-----------------------------------\n`;
+    const MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB threshold for log rotation
+    const logFilePath = path.join(process.cwd(), "client-errors.log");
     try {
-      fs.appendFileSync(path.join(process.cwd(), "client-errors.log"), logMessage);
+      if (fs.existsSync(logFilePath)) {
+        const stats = fs.statSync(logFilePath);
+        if (stats.size >= MAX_LOG_SIZE_BYTES) {
+          // Rotate current log to .1 archive and create fresh file
+          const archiveLogPath = path.join(process.cwd(), "client-errors.log.1");
+          try {
+            if (fs.existsSync(archiveLogPath)) fs.unlinkSync(archiveLogPath);
+            fs.renameSync(logFilePath, archiveLogPath);
+          } catch {
+            fs.writeFileSync(logFilePath, "");
+          }
+        }
+      }
+      fs.appendFileSync(logFilePath, logMessage, { encoding: "utf8" });
     } catch (err) {
       console.error("Failed to write to client-errors.log:", err);
     }
@@ -384,7 +395,7 @@ Lütfen yanıtını aşağıdaki JSON formatında ver:
       try {
         const data = JSON.parse(response.text || "{}");
         const safeSteps = typeof data.steps === 'number' && data.steps > 0 && data.steps < 50 ? data.steps : 2;
-        const safePath = Array.isArray(data.path) ? data.path.slice(0, 10).map((p: any) => sanitizeText(p, 100)) : [];
+        const safePath = Array.isArray(data.path) ? data.path.slice(0, 10).map((p: unknown) => sanitizeText(p, 100)) : [];
         res.json({
           shortest: safeSteps,
           path: safePath

@@ -22,6 +22,12 @@ import {
   OperationType,
   User
 } from './services/firebase';
+import { 
+  playSuccessChime, 
+  playErrorThud, 
+  playVictoryFanfare, 
+  setSoundMuted 
+} from './services/soundFx';
 
 import { AppHeader } from './components/AppHeader';
 import { AppFooter } from './components/AppFooter';
@@ -64,9 +70,18 @@ const App: React.FC = () => {
   const [tempEntries, setTempEntries] = useState<LeaderboardEntry[]>([]);
   const [playCount, setPlayCount] = useState<number>(1);
   const [user, setUser] = useState<User | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [acceptedKVKK, setAcceptedKVKK] = useState<boolean>(() => {
     return safeGetItem('cinelink_kvkk_accepted') === 'true';
   });
+
+  const toggleSound = () => {
+    setSoundEnabled(prev => {
+      const next = !prev;
+      setSoundMuted(!next);
+      return next;
+    });
+  };
 
   // Listen to Authentication State
   useEffect(() => {
@@ -164,17 +179,17 @@ const App: React.FC = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const loggedInUser = result.user;
-      setInfoMsg(`Başarıyla giriş yapıldı: ${loggedInUser.displayName}`);
+      setInfoMsg(`Giriş yapıldı: ${loggedInUser.displayName}`);
       await loadLeaderboardData();
     } catch (e: unknown) {
       console.error("Sign in error:", e);
       const err = e as { code?: string; message?: string };
       if (err.code === 'auth/popup-blocked') {
-        setErrorMsg('Giriş penceresi tarayıcı tarafından engellendi. Lütfen pop-up engelleyicinizi devre dışı bırakın veya uygulamayı yeni sekmede açın.');
+        setErrorMsg('Giriş penceresi engellendi. Pop-up engelleyicinizi kontrol edin.');
       } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-        setErrorMsg('Giriş penceresi kapatıldı veya tarayıcınızın çerez/iframe kısıtlamaları nedeniyle engellendi.');
+        setErrorMsg('Giriş penceresi kapatıldı.');
       } else {
-        setErrorMsg('Google ile giriş yapılırken bir hata oluştu: ' + (err.message || String(e)));
+        setErrorMsg('Google ile giriş yapılırken bir sorun oluştu.');
       }
     } finally {
       setLoading(false);
@@ -187,10 +202,10 @@ const App: React.FC = () => {
     setInfoMsg('');
     try {
       await signOut(auth);
-      setInfoMsg('Başarıyla çıkış yapıldı.');
+      setInfoMsg('Çıkış yapıldı.');
       await loadLeaderboardData();
     } catch {
-      setErrorMsg('Çıkış yapılırken bir hata oluştu.');
+      setErrorMsg('Çıkış yapılırken bir sorun oluştu.');
     } finally {
       setLoading(false);
     }
@@ -232,15 +247,11 @@ const App: React.FC = () => {
         } catch (err) {
           handleFirestoreError(err, OperationType.CREATE, 'leaderboard');
         }
-        setInfoMsg("Tebrikler! Rekorunuz Google Hesabınızla kalıcı olarak kaydedildi.");
         await loadLeaderboardData();
       } catch (e: unknown) {
         console.error("Firestore saveToLeaderboard error:", e);
-        const errMsg = e instanceof Error ? e.message : String(e);
-        setErrorMsg("Rekor kaydedilirken bir hata oluştu: " + errMsg);
       }
     } else {
-      // Unauthenticated -> Temporary list only. Cleared on refresh.
       const currentPlay = playCount;
       const tempEntry: LeaderboardEntry = {
         nickname: safeNick,
@@ -253,7 +264,6 @@ const App: React.FC = () => {
       
       setTempEntries(prev => [...prev, tempEntry]);
       setPlayCount(prev => prev + 1);
-      setInfoMsg("Tebrikler! Rekorunuz geçici olarak listeye eklendi (Giriş yapılmadığı için sonraki oturumda sıfırlanacaktır).");
     }
   };
 
@@ -264,11 +274,11 @@ const App: React.FC = () => {
 
   const startNewGame = async () => {
     if (!nickname.trim()) {
-      setErrorMsg('Lütfen önce kendiniz için yaratıcı bir takma ad (nickname) belirleyin.');
+      setErrorMsg('Lütfen önce kendiniz için bir takma ad (nickname) belirleyin.');
       return;
     }
     if (!acceptedKVKK) {
-      setErrorMsg('Oyuna başlamak için yerel bilgi saklama ve KVKK bilgilendirme metnini onaylamanız gerekmektedir.');
+      setErrorMsg('Oyuna başlamak için KVKK bilgilendirme metnini onaylamanız gerekmektedir.');
       return;
     }
     safeSetItem('cinelink_nickname', nickname.trim());
@@ -307,6 +317,7 @@ const App: React.FC = () => {
     try {
       const { isValid, explanation } = await verifyLink(lastNode, proposedLink);
       if (isValid) {
+        playSuccessChime();
         const isNextMovie = gameState.currentChain.length % 2 !== 0;
         const newStep: LinkStep = { 
           type: isNextMovie ? 'MOVIE' : 'PERSON', 
@@ -319,12 +330,14 @@ const App: React.FC = () => {
         } else {
           setGameState({ ...gameState, currentChain: newChain });
           setInputVal('');
-          setInfoMsg(`Bağlantı doğrulandı! ${explanation}`);
+          setInfoMsg(explanation);
         }
       } else {
-        setErrorMsg(`Geçersiz Bağlantı: ${explanation || 'Girdiğiniz veri ile mevcut adım arasında doğrudan bir bağ saptanamadı.'}`);
+        playErrorThud();
+        setErrorMsg(explanation || 'Girdiğiniz isim ile önceki adım arasında doğrudan bir sinema bağı saptanamadı.');
       }
     } catch {
+      playErrorThud();
       setErrorMsg('Bağlantı doğrulaması esnasında sunucu ile iletişim kesildi.');
     } finally {
       setLoading(false);
@@ -341,6 +354,7 @@ const App: React.FC = () => {
     try {
       const { isValid, explanation } = await verifyLink(lastNode, gameState.endNode);
       if (isValid) {
+        playSuccessChime();
         const isNextMovie = gameState.currentChain.length % 2 !== 0;
         const newChain = [...gameState.currentChain, { 
           type: isNextMovie ? 'MOVIE' : 'PERSON', 
@@ -348,9 +362,11 @@ const App: React.FC = () => {
         } as LinkStep];
         await finishGame(newChain);
       } else {
+        playErrorThud();
         setErrorMsg(`"${lastNode}" ile hedef "${gameState.endNode}" arasında doğrudan bir bağ saptanamadı. Lütfen ara adımlar eklemeye devam edin.`);
       }
     } catch {
+      playErrorThud();
       setErrorMsg('Bağlantı doğrulanırken bir sunucu hatası oluştu.');
     } finally {
       setLoading(false);
@@ -360,6 +376,7 @@ const App: React.FC = () => {
   const finishGame = async (finalChain: LinkStep[]) => {
     if (!gameState) return;
     setLoading(true);
+    playVictoryFanfare();
     const userSteps = finalChain.length - 1;
     
     try {
@@ -388,15 +405,17 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0b0f19] text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-900">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[400px] bg-radial from-emerald-950/20 via-blue-950/5 to-transparent pointer-events-none -z-10" />
+    <div className="min-h-screen flex flex-col bg-[#090d16] text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950">
+      {/* Subtle atmospheric ambient glow */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-80 bg-amber-500/[0.03] blur-3xl pointer-events-none -z-10" />
 
-      {/* Modular Header */}
+      {/* Top Bar (Complies with Top Bar Contract) */}
       <AppHeader
         user={user}
         loading={loading}
         stage={stage}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
         onSignOut={handleSignOut}
         onGoogleSignIn={handleGoogleSignIn}
         onGoHome={() => {
@@ -407,7 +426,8 @@ const App: React.FC = () => {
         onGoLeaderboard={() => setStage(GameStage.LEADERBOARD)}
       />
 
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-8 md:py-12 flex flex-col justify-center animate-fade-in" id="main_game_container">
+      {/* Main Viewport Container */}
+      <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center animate-fade-in" id="main_game_container">
         {stage === GameStage.HOME && (
           <HomeView
             user={user}
@@ -433,13 +453,21 @@ const App: React.FC = () => {
             onChangeInput={setInputVal}
             onAddLink={handleAddLink}
             onDirectFinish={checkDirectFinish}
+            onGiveUp={() => {
+              setErrorMsg('');
+              setInfoMsg('');
+              setStage(GameStage.HOME);
+            }}
           />
         )}
 
         {stage === GameStage.RESULT && gameState && (
           <ResultView
             gameState={gameState}
-            onPlayAgain={() => setStage(GameStage.HOME)}
+            onPlayAgain={() => {
+              setGameState(null);
+              startNewGame();
+            }}
             onGoLeaderboard={() => setStage(GameStage.LEADERBOARD)}
           />
         )}
@@ -458,10 +486,10 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Modular Footer */}
+      {/* Restrained Footer */}
       <AppFooter />
 
-      {/* KVKK 2026 & AdSense Cookie Consent Banner */}
+      {/* KVKK & AdSense Cookie Consent Banner */}
       <CookieBanner />
     </div>
   );

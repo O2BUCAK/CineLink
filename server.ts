@@ -177,7 +177,7 @@ async function startServer() {
 
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: "Sinema dünyasından (ünlü bir Türk veya global aktör/aktris veya yönetmen) iki farklı isim seç. Bu iki isim birbirinden doğrudan tanıdık olmasın ama aralarında bir film bağı kurulabilsin. Yanıt olarak sadece aralarında virgül olan iki isim ver. Örn: Tom Hanks, Quentin Tarantino. Fazladan hiçbir metin yazma.",
+        contents: "Sinema dünyasından (Türk veya global tanınmış aktör, aktris veya yönetmen) iki farklı isim seç. ÇOK KATI KURAL: Bu iki isim ASLA aynı filmde veya projede birlikte yer almamış olmalı! Tek bir ortak filmle (tek zincirde/tek adımda) doğrudan birbirine bağlanamasınlar. Aralarındaki en kısa bağ EN AZ 2 VEYA DAHA FAZLA ara film ve ara sanatçı köprüsü gerektirmeli (Örn: Şener Şen ile Leonardo DiCaprio, Kemal Sunal ile Quentin Tarantino, Haluk Bilginer ile Keanu Reeves, Christian Bale ile Nuri Bilge Ceylan gibi). Yanıt olarak SADECE aralarında virgül olan iki isim ver. Örn: Şener Şen, Leonardo DiCaprio. Fazladan hiçbir metin yazma.",
         config: {
           temperature: 1.0,
         }

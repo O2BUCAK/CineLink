@@ -1,5 +1,6 @@
 import React from 'react';
 import { LeaderboardEntry } from '../types';
+import { Trophy, ArrowLeft } from 'lucide-react';
 
 interface LeaderboardViewProps {
   leaderboard: LeaderboardEntry[];
@@ -19,74 +20,102 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     .slice(0, 10);
 
   return (
-    <div className="glass-card p-6 md:p-8 rounded-2xl shadow-2xl space-y-6" id="leaderboard_view">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-black text-slate-100 flex items-center gap-2 tracking-tight">
-          <span className="text-3xl text-yellow-500">🏆</span> Onur Tablosu
-        </h2>
-        <span className="text-[10px] text-slate-500 uppercase tracking-widest font-mono font-bold">TOP 10 LİSTESİ</span>
+    <div className="cinema-panel p-6 sm:p-8 rounded-2xl space-y-6 max-w-2xl mx-auto" id="leaderboard_view">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-4 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <Trophy className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white font-[family-name:var(--font-display)]">
+              Onur Tablosu
+            </h2>
+            <p className="text-xs text-slate-400">
+              En kısa zincirlerle sonuca ulaşan sinema ustaları
+            </p>
+          </div>
+        </div>
+        <span className="text-xs text-slate-500 font-mono self-start sm:self-auto">
+          İLK 10 SIRALAMASI
+        </span>
       </div>
 
-      <p className="text-xs text-slate-400 leading-relaxed">
-        Oyun puanları her bir bağlantı adımını temsil etmektedir. Puanı daha düşük olan oyuncular daha kısa zincirlerle sonuca ulaşan ustaları gösterir.
-      </p>
-
-      <div className="space-y-3">
+      {/* Leaderboard entries */}
+      <div className="space-y-2.5">
         {displayedLeaderboard.length > 0 ? (
-          displayedLeaderboard.map((item, i) => (
-            <div 
-              key={i} 
-              className={`flex flex-col sm:flex-row justify-between sm:items-center p-4 rounded-xl border transition ${
-                item.nickname === nickname 
-                  ? 'bg-emerald-950/20 border-emerald-500/40 shadow-md' 
-                  : 'bg-slate-900/40 border-slate-800/80'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className={`text-sm font-black w-6 text-center ${
-                  i === 0 ? 'text-yellow-500 text-lg' : i === 1 ? 'text-slate-300' : i === 2 ? 'text-amber-600' : 'text-slate-500'
-                }`}>
-                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
-                </span>
-                <div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="font-extrabold text-slate-200">{item.nickname}</p>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      ({item.playCount || 1}. oynayışta)
+          displayedLeaderboard.map((item, i) => {
+            const isCurrentUser = item.nickname.toLowerCase() === nickname.toLowerCase().trim();
+            const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+
+            return (
+              <div 
+                key={i} 
+                className={`p-3.5 sm:p-4 rounded-xl border transition ${
+                  isCurrentUser 
+                    ? 'bg-amber-500/[0.06] border-amber-500/30 shadow-sm' 
+                    : 'cinema-panel-subtle border-white/[0.05]'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-base sm:text-lg font-bold w-6 text-center font-mono tabular-nums shrink-0 text-slate-400">
+                      {rankEmoji}
                     </span>
-                    {item.isTemporary && (
-                      <span className="text-[9px] bg-amber-500/15 text-amber-400 border border-amber-500/20 uppercase font-mono px-1.5 rounded">Geçici</span>
-                    )}
-                    {item.nickname === nickname && (
-                      <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase font-mono px-1.5 rounded">Siz</span>
-                    )}
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm text-slate-100">
+                          {item.nickname}
+                        </span>
+                        {isCurrentUser && (
+                          <span className="text-[10px] text-amber-400 font-semibold">
+                            (Siz)
+                          </span>
+                        )}
+                        {item.isTemporary && (
+                          <span className="text-[10px] text-slate-400">
+                            (Geçici)
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-0.5">
+                        <span>{item.playCount || 1}. deneme</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="font-mono">{item.date}</span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 font-mono">{item.date}</p>
+                  
+                  <div className="text-left sm:text-right pt-2 sm:pt-0 border-t border-white/[0.04] sm:border-0">
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1">
+                      <span className="text-base font-extrabold text-amber-400 font-mono tabular-nums">
+                        {item.score} <span className="text-xs font-normal text-slate-400">puan</span>
+                      </span>
+                      {item.chain && item.chain.length > 0 && (
+                        <p className="text-[10px] text-slate-400 truncate max-w-xs sm:max-w-xs">
+                          {item.chain.join(" → ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              <div className="text-left sm:text-right mt-2 sm:mt-0 flex sm:flex-col justify-between items-center sm:items-end gap-1 border-t border-slate-800/50 sm:border-0 pt-2 sm:pt-0">
-                <p className="text-sm font-mono text-emerald-400 font-black">{item.score} <span className="text-xs text-slate-500 font-normal">puan</span></p>
-                <p className="text-[9px] text-slate-500 italic max-w-xs truncate">
-                  {item.chain ? item.chain.join(" → ") : ""}
-                </p>
-              </div>
-            </div>
-          ))
+            );
+          })
         ) : (
-          <div className="text-center text-slate-500 py-16 bg-slate-900/20 rounded-xl border border-slate-900">
-            <span className="text-3xl block mb-2">🎬</span>
-            Henüz bir rekor kaydedilmedi. İlk kazanan sen ol!
+          <div className="text-center text-slate-500 py-12 cinema-panel-subtle rounded-xl">
+            Henüz bir rekor kaydedilmedi. İlk kazanan siz olun!
           </div>
         )}
       </div>
 
       <button 
         onClick={onBackToHome}
-        className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition text-sm cursor-pointer"
+        className="w-full py-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-slate-200 font-semibold rounded-xl transition text-sm flex items-center justify-center gap-2 cursor-pointer"
         id="back_to_homepage_button"
       >
-        Ana Sayfaya Dön
+        <ArrowLeft className="w-4 h-4" />
+        <span>Ana Sayfaya Dön</span>
       </button>
     </div>
   );

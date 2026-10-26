@@ -19,22 +19,22 @@ export const AppFooter: React.FC = () => {
   };
 
   return (
-    <footer className="mt-auto py-8 text-center text-slate-500 text-xs border-t border-slate-900/80 px-4 space-y-5" id="app_footer">
-      {/* Feedback / Contact Email Card */}
-      <div className="max-w-md mx-auto bg-slate-900/60 border border-slate-800/90 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-lg backdrop-blur-xs" id="feedback_contact_card">
+    <footer className="mt-auto py-10 border-t border-white/[0.08] px-4 text-center space-y-6" id="app_footer">
+      {/* Contact & Feedback Card */}
+      <div className="max-w-md mx-auto cinema-panel p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left" id="feedback_contact_card">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
             <Mail className="w-4 h-4" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-200">Öneri, İstek ve Görüşler</p>
-            <p className="text-[11px] text-slate-400">Geri bildirimlerinizi bizimle paylaşabilirsiniz</p>
+            <p className="text-xs font-semibold text-slate-200">Görüş & İletişim</p>
+            <p className="text-[11px] text-slate-400">Öneri ve geri bildirimlerinizi iletebilirsiniz</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
           <a
             href="mailto:ersin@ozbucak.com.tr?subject=CineLink%20%C3%96neri%2C%20%C4%B0stek%20ve%20G%C3%B6r%C3%BC%C5%9F"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 hover:bg-emerald-950/60 border border-emerald-700/40 rounded-lg transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-400 hover:text-amber-300 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg transition"
             id="contact_email_link"
             title="E-posta Gönder"
           >
@@ -43,7 +43,7 @@ export const AppFooter: React.FC = () => {
           <button
             onClick={handleCopyEmail}
             title={copiedEmail ? "Kopyalandı!" : "E-postayı Kopyala"}
-            className="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 rounded-lg transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg transition cursor-pointer"
             id="copy_contact_email_button"
             type="button"
           >
@@ -52,9 +52,9 @@ export const AppFooter: React.FC = () => {
         </div>
       </div>
 
-      <div className="text-[11px] text-slate-600 space-y-1">
+      <div className="text-[11px] text-slate-500 space-y-1">
         <div>CineLink © 2026 Türkiye Sinema Bağlantı Oyunu</div>
-        <div>Yerel Veri Koruma Standartları ile Tarayıcı Tabanlı Güvenceli Altyapı</div>
+        <div>Veri minimizasyonu ve yerel bellek güvencesiyle sunulmaktadır</div>
       </div>
     </footer>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { GameState } from '../types';
+import { ArrowRight, User, Clapperboard, CheckCircle2, AlertCircle, HelpCircle, RotateCcw } from 'lucide-react';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -10,6 +11,7 @@ interface GameBoardProps {
   onChangeInput: (val: string) => void;
   onAddLink: () => void;
   onDirectFinish: () => void;
+  onGiveUp?: () => void;
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -21,6 +23,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onChangeInput,
   onAddLink,
   onDirectFinish,
+  onGiveUp,
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !loading && inputVal.trim()) {
@@ -33,72 +36,105 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   return (
     <div className="space-y-6" id="playing_view">
       {gameState.warning && (
-        <div className="p-3 rounded-lg bg-blue-950/40 border border-blue-500/20 text-[11px] text-blue-300">
-          ℹ️ {gameState.warning}
+        <div className="p-3.5 rounded-xl bg-blue-950/30 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-2">
+          <HelpCircle className="w-4 h-4 shrink-0 text-blue-400" />
+          <span>{gameState.warning}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Start Node Panel */}
-        <div className="glass-card p-4 rounded-xl relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 p-1 bg-slate-800 text-[9px] text-slate-500 rounded-bl font-mono">
-            #BAŞLANGIÇ
+      {/* Target & Start Nodes Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="cinema-panel p-4 rounded-xl flex items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+              Başlangıç Sanatçısı
+            </span>
+            <p className="text-lg font-bold text-white font-[family-name:var(--font-display)]">
+              {gameState.startNode}
+            </p>
           </div>
-          <div>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">BAŞLANGIÇ FİGÜRÜ</p>
-            <p className="text-lg font-black text-emerald-400 mt-1">{gameState.startNode}</p>
+          <div className="w-9 h-9 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-slate-300 shrink-0">
+            <User className="w-4 h-4" />
           </div>
         </div>
 
-        {/* End Node Panel */}
-        <div className="glass-card p-4 rounded-xl border-l-2 border-l-blue-500 relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 p-1 bg-blue-950 text-[9px] text-blue-400 rounded-bl font-mono">
-            #HEDEF
+        <div className="cinema-panel p-4 rounded-xl flex items-center justify-between gap-3 border-amber-500/30 bg-amber-500/[0.03]">
+          <div className="space-y-0.5">
+            <span className="text-[11px] font-medium text-amber-400/90 uppercase tracking-wider">
+              Hedeflenen Sanatçı
+            </span>
+            <p className="text-lg font-bold text-amber-400 font-[family-name:var(--font-display)]">
+              {gameState.endNode}
+            </p>
           </div>
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">HEDEFLENEN FİGÜR</p>
-            <p className="text-lg font-black text-blue-400 mt-1">{gameState.endNode}</p>
+          <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+            <Clapperboard className="w-4 h-4" />
           </div>
         </div>
       </div>
 
-      {/* Current Chain Presentation */}
-      <div className="glass-card p-6 rounded-2xl space-y-5 shadow-xl relative">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-          <span>🔗 Mevcut Bağlantı Zinciri:</span>
-          <span className="text-[11px] text-teal-400 font-mono font-medium">
-            {gameState.currentChain.length - 1} Adım Atıldı
-          </span>
-        </h3>
+      {/* Connection Chain: Cinema Film Strip */}
+      <div className="cinema-panel p-5 sm:p-6 rounded-2xl space-y-5">
+        <div className="flex items-center justify-between text-xs pb-3 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2 font-semibold text-slate-200">
+            <span>Bağlantı Şeridi</span>
+            <span aria-hidden="true" className="text-slate-600">·</span>
+            <span className="text-slate-400 font-normal">
+              Şu ana kadar <strong className="text-white font-mono tabular-nums">{gameState.currentChain.length - 1}</strong> adım atıldı
+            </span>
+          </div>
+          {onGiveUp && (
+            <button
+              onClick={onGiveUp}
+              disabled={loading}
+              className="text-[11px] text-slate-500 hover:text-slate-300 transition flex items-center gap-1 cursor-pointer"
+              title="Bu oyundan çık ve ana menüye dön"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Yeniden Başla</span>
+            </button>
+          )}
+        </div>
         
-        <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 min-h-[90px] flex flex-wrap gap-2 items-center">
-          {gameState.currentChain.map((step, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                step.type === 'PERSON' 
-                  ? 'bg-emerald-950/30 text-emerald-300 border border-emerald-500/15' 
-                  : 'bg-blue-950/30 text-blue-300 border border-blue-500/15'
-              }`}>
-                <span>{step.type === 'PERSON' ? '👤' : '🎬'}</span>
-                {step.name}
-              </span>
-              {i < gameState.currentChain.length - 1 && (
-                <span className="text-slate-600 font-bold">→</span>
-              )}
-            </div>
-          ))}
+        {/* Film Strip Nodes */}
+        <div className="cinema-panel-subtle p-4 rounded-xl flex flex-wrap gap-2.5 items-center min-h-[80px]">
+          {gameState.currentChain.map((step, i) => {
+            const isPerson = step.type === 'PERSON';
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <div className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition ${
+                  isPerson 
+                    ? 'bg-white/[0.06] text-slate-200 border border-white/[0.1]' 
+                    : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                }`}>
+                  {isPerson ? (
+                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  ) : (
+                    <Clapperboard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  )}
+                  <span>{step.name}</span>
+                </div>
+                {i < gameState.currentChain.length - 1 && (
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        <div className="space-y-4 pt-2">
+        {/* Input Bar */}
+        <div className="space-y-3 pt-2">
           <div className="space-y-1.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            <label htmlFor="next_step_input" className="block text-xs font-semibold text-slate-300">
               {isNextMovie ? (
-                <span className="flex items-center gap-1 text-blue-300">
-                  🎬 Bir Sonraki Bağı Bir <strong>Film/Dizi</strong> Olarak Yazın:
+                <span className="flex items-center gap-1.5 text-amber-300">
+                  <Clapperboard className="w-3.5 h-3.5" />
+                  <span>Son sanatçının oynadığı veya yönettiği bir <strong>Film / Dizi</strong> yazın:</span>
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-emerald-300">
-                  👤 Bir Sonraki Bağı Bir <strong>Sanatçı (Oyuncu/Yönetmen)</strong> Olarak Yazın:
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Bu yapımda yer alan başka bir <strong>Sanatçı (Oyuncu / Yönetmen)</strong> yazın:</span>
                 </span>
               )}
             </label>
@@ -106,45 +142,47 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             <div className="flex gap-2">
               <input 
                 type="text"
+                id="next_step_input"
                 value={inputVal}
                 onChange={(e) => onChangeInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={isNextMovie ? "Örn: G.O.R.A." : "Örn: Cem Yılmaz"}
-                className="flex-1 bg-slate-950 border border-slate-800 p-3 rounded-lg text-slate-200 placeholder:text-slate-700 outline-none focus:ring-1 focus:ring-emerald-500 transition"
+                placeholder={isNextMovie ? "Örn: Av Mevsimi, Kış Uykusu, Eşkıya..." : "Örn: Cem Yılmaz, Haluk Bilginer, Şener Şen..."}
+                className="flex-1 bg-[#0d121c] border border-white/[0.08] px-3.5 py-2.5 rounded-xl text-slate-100 placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/60 transition text-sm"
                 disabled={loading}
-                id="next_step_input"
               />
               <button 
                 onClick={onAddLink}
                 disabled={loading || !inputVal.trim()}
-                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold px-6 rounded-lg transition disabled:opacity-50 text-xs tracking-wide cursor-pointer"
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 rounded-xl transition disabled:opacity-50 text-xs tracking-wide cursor-pointer shrink-0 shadow-sm"
                 id="submit_step_button"
               >
-                {loading ? 'Kontrol...' : 'Bağla'}
+                {loading ? 'Kontrol Ediliyor...' : 'Bağla'}
               </button>
             </div>
           </div>
 
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-red-950/30 border border-red-500/20 text-red-400 text-xs animate-fade-in">
-              ⚠️ {errorMsg}
+            <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 animate-fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              <span>{errorMsg}</span>
             </div>
           )}
 
           {infoMsg && (
-            <div className="p-3 rounded-lg bg-teal-950/20 border border-teal-500/20 text-teal-300 text-xs animate-fade-in">
-              ✅ {infoMsg}
+            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{infoMsg}</span>
             </div>
           )}
 
-          <div className="pt-2 border-t border-slate-800/60 flex flex-col sm:flex-row gap-2 justify-between items-center">
+          <div className="pt-2 border-t border-white/[0.06] flex flex-col sm:flex-row gap-2 justify-between items-center text-xs">
             <span className="text-[11px] text-slate-500">
-              Cevabı bulamadınız mı? Zincirinizdeki son ismi doğrudan hedefe bağlamayı deneyebilirsin.
+              Zincirdeki son isim hedefe doğrudan bağlıysa ara adım girmeden bitirebilirsiniz.
             </span>
             <button 
               onClick={onDirectFinish}
               disabled={loading}
-              className="text-xs font-semibold text-blue-400 hover:text-blue-300 underline focus:outline-none shrink-0 cursor-pointer"
+              className="text-xs font-semibold text-amber-400 hover:text-amber-300 underline focus:outline-none shrink-0 cursor-pointer"
               id="direct_finish_button"
             >
               Hedefe Doğrudan Bağla?
